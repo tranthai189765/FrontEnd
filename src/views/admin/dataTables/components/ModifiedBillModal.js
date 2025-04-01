@@ -45,7 +45,7 @@ import {
   
   
     return (
-      <Modal isOpen={isOpen} onClose={onClose} size="5xl">
+      <Modal isOpen={isOpen} onClose={onClose} size="7xl">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>
