@@ -466,7 +466,7 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
           {/* Thanh tìm kiếm theo Global ID */}
           <Box px="25px" mb="12px">
             <Input
-              placeholder="Search by username..."
+              placeholder="Search by apartment number..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               size="md"
