@@ -155,7 +155,7 @@ function SignIn() {
       console.log("Parsed Data:", data);
   
       if (!response.ok) {
-        throw new Error(data.message || "Your account have not been activated by admin");
+        throw new Error(data.message || "You provided wrong information!");
       }
   
       if (!data.token) {
