@@ -7,7 +7,7 @@ import {useEffect, useState} from "react";
 import { useToast } from '@chakra-ui/react';
 import Information from "views/admin/profile/components/Information";
 import ChangePassModal from "./ChangePassModal";
-
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
 // Assets
 export default function GeneralInformation(props) {
   const { ...rest } = props;
@@ -35,7 +35,7 @@ export default function GeneralInformation(props) {
       try {
         console.log('Đang fetch');
         const token = localStorage.getItem("token");
-        const response = await fetch("https://backend-production-de57.up.railway.app/api/user/home", {
+        const response = await fetch(`${API_BASE_URL}/api/user/home`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -62,7 +62,7 @@ export default function GeneralInformation(props) {
       return;
     }
       // Gửi yêu cầu GET để lấy userId
-      const responseGet = await fetch("https://backend-production-de57.up.railway.app/api/user/change-password", {
+      const responseGet = await fetch(`${API_BASE_URL}/api/user/change-password`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -81,7 +81,7 @@ export default function GeneralInformation(props) {
       console.log("updatedFormData = ", updatedFormData)
       
       try {
-        const responsePost = await fetch("https://backend-production-de57.up.railway.app/api/user/change-password", {
+        const responsePost = await fetch(`${API_BASE_URL}/api/user/change-password`, {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${token}`,

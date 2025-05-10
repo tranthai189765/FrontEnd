@@ -16,6 +16,7 @@ import {
     columnsBillDataColumns,
   } from "views/admin/dataTables/variables/columnsData";
   import axios from "axios";
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
   const ModifiedBillModal = ({ isOpen, onClose}) => {
     const [billTableDataColumns, setBillTableDataColumns] = useState([]);
      const textColor = useColorModeValue('secondaryGray.900', 'white');
@@ -27,7 +28,7 @@ import {
             return;
           }
     
-          const response = await axios.get("https://backend-production-de57.up.railway.app/api/admin/bills", {
+          const response = await axios.get(`${API_BASE_URL}/api/admin/bills`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
