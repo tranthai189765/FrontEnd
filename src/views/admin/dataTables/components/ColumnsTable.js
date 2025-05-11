@@ -327,7 +327,7 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
       );
     } else if (mode === 'edit') {
       await submitUserData(
-        `${API_BASE_URL}p/api/admin/users/edit/${idEdit}`,
+        `${API_BASE_URL}/api/admin/users/edit/${idEdit}`,
         'POST',
         formattedData,
         'User updated successfully',
