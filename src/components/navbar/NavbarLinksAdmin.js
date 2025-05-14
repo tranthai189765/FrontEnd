@@ -199,21 +199,22 @@ export default function HeaderLinks(props) {
     }
   };
 
-  const handleNotificationClick = async (message, id, event) => {
+  const handleNotificationClick = async (notification, event) => {
     event.stopPropagation(); // Prevent menu from closing
   
+    const { id, linkHeader, linkAPI } = notification;
     const token = localStorage.getItem('token');
     if (!token) return;
   
     let role = null;
-  
+
     try {
       const decoded = jwtDecode(token);
       role = decoded.role || decoded?.authorities?.[0]?.authority || null;
     } catch (error) {
       console.error('Invalid token:', error);
     }
-  
+
     try {
       const response = await fetch(`${API_BASE_URL}/api/notifications/mark-as-read/${id}`, {
         method: 'PUT',
@@ -226,33 +227,25 @@ export default function HeaderLinks(props) {
   
       // Update UI
       setNotifications((prev) => {
-        const notification = prev.unreadNotifications.find((n) => n.id === id);
-        if (!notification) return prev;
+        const notif = prev.unreadNotifications.find((n) => n.id === id);
+        if (!notif) return prev;
         return {
           unreadNotifications: prev.unreadNotifications.filter((n) => n.id !== id),
-          readNotifications: [...prev.readNotifications, { ...notification, read: true }],
+          readNotifications: [...prev.readNotifications, { ...notif, read: true }],
           unreadCount: prev.unreadCount - 1,
         };
       });
   
-      // Hiển thị toast trước
-      toast({
-        title: 'Redirecting to complaint page...',
-        status: 'info',
-        duration: 2000,
-        isClosable: true,
-      });
-  
-      // Sau khi toast kết thúc mới điều hướng nếu là complaint
-      if (message.toLowerCase().includes('complaint')) {
+      if (linkHeader && linkAPI) {
+        toast({
+          title: `Redirecting to ${linkHeader}...`,
+          status: 'info',
+          duration: 2000,
+          isClosable: true,
+        });
+
         setTimeout(() => {
-          if (role === 'ROLE_ADMIN') {
-            // window.location.reload();
-            navigate('/admin/complaint');
-          } else {
-            // window.location.reload();
-            navigate('/user/complaint');
-          }
+          navigate(linkAPI);
         }, 2000); // Delay đúng bằng thời gian toast
       }
   
@@ -265,16 +258,17 @@ export default function HeaderLinks(props) {
         isClosable: true,
       });
 
-      if (message.toLowerCase().includes('complaint')) {
+      if (linkHeader && linkAPI) {
+        toast({
+          title: `Redirecting to ${linkHeader}...`,
+          status: 'info',
+          duration: 2000,
+          isClosable: true,
+        });
+
         setTimeout(() => {
-          if (role === 'ROLE_ADMIN') {
-            // window.location.reload();
-            navigate('/admin/complaint');
-          } else {
-            // window.location.reload();
-            navigate('/user/complaint');
-          }
-        }, 2000); // Delay đúng bằng thời gian toast
+          navigate(linkAPI);
+        }, 2000);
       }
     }
   };
@@ -402,7 +396,7 @@ export default function HeaderLinks(props) {
                 mb="5px"
                 bg="gray.100"
                 position="relative"
-                onClick={(e) => handleNotificationClick(notification.message, notification.id, e)}
+                onClick={(e) => handleNotificationClick(notification, e)}
               >
                 <Flex direction="column">
                   <Text fontSize="sm" fontWeight="600" color={textColor}>
@@ -451,7 +445,7 @@ export default function HeaderLinks(props) {
                 borderRadius="8px"
                 mb="5px"
                 position="relative"
-                onClick={(e) => handleNotificationClick(notification.message, notification.id, e)}
+                onClick={(e) => handleNotificationClick(notification, e)}
               >
                 <Flex direction="column">
                   <Text fontSize="sm" color="gray.600">
