@@ -16,7 +16,7 @@ import {
   } from '@chakra-ui/react';
   import { useState, useEffect } from 'react';
   import axios from 'axios';
-  
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
   const PaymentModal = ({ isOpen, onClose, id }) => {
     const textColor = useColorModeValue('secondaryGray.900', 'white');
     const [qrData, setQrData] = useState({ qrCodeUrl: '', referenceCode: '' });
@@ -31,7 +31,7 @@ import {
           throw new Error('Authentication failed: No token found!');
         }
   
-        const response = await axios.get(`http://localhost:9090/api/qrcode/${id}`, {
+        const response = await axios.get(`${API_BASE_URL}/api/qrcode/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
