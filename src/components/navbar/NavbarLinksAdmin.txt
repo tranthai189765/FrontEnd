@@ -201,11 +201,11 @@ export default function HeaderLinks(props) {
 
   const handleNotificationClick = async (notification, event) => {
     event.stopPropagation(); // Prevent menu from closing
-
+  
     const { id, linkHeader, linkAPI } = notification;
     const token = localStorage.getItem('token');
     if (!token) return;
-
+  
     let role = null;
 
     try {
@@ -222,9 +222,9 @@ export default function HeaderLinks(props) {
           Authorization: `Bearer ${token}`,
         },
       });
-
+  
       if (!response.ok) throw new Error('Failed to mark notification as read');
-
+  
       // Update UI
       setNotifications((prev) => {
         const notif = prev.unreadNotifications.find((n) => n.id === id);
@@ -235,7 +235,7 @@ export default function HeaderLinks(props) {
           unreadCount: prev.unreadCount - 1,
         };
       });
-
+  
       if (linkHeader && linkAPI) {
         toast({
           title: `Redirecting to ${linkHeader}...`,
@@ -246,9 +246,9 @@ export default function HeaderLinks(props) {
 
         setTimeout(() => {
           navigate(linkAPI);
-        }, 2000); // Delay equal to the toast time
+        }, 2000); // Delay đúng bằng thời gian toast
       }
-
+  
     } catch (error) {
       console.error('Error marking notification as read:', error);
       toast({
@@ -272,7 +272,7 @@ export default function HeaderLinks(props) {
       }
     }
   };
-
+  
 
   const handleLogout = async () => {
     try {

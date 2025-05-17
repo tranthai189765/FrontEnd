@@ -7,6 +7,13 @@ import {
   MdOutlineShoppingCart,
   MdFeedback,
   MdHome,
+  MdPayment,
+  MdLocalParking,
+  MdAttachMoney,
+  MdReceiptLong,
+  MdWaterDrop,
+  MdElectricalServices,
+  MdSell,
 } from 'react-icons/md';
 
 // Admin Imports
@@ -14,11 +21,18 @@ import NFTMarketplace from 'views/admin/marketplace';
 import Profile from 'views/admin/profile';
 import Complaint from 'views/user/complaint';
 import UserProfile from 'views/user/profile';
+import Contributions from 'views/admin/contributions';
+import UserContribution from 'views/user/contribution';
+import InvoicesAdmin from "views/admin/invoices";
+import UserInvoice from "views/user/invoice";
+import FeeUnitList from "views/admin/feeUnit/FeeUnitList";
+import FeeUnitForm from "views/admin/feeUnit/FeeUnitForm";
+// import BatchBillCreation from "views/admin/utilities/BatchBillCreation";
+import UtilityBillsCreation from "views/admin/utilities/UtilityBillsCreation";
 
-// User Imports (nếu có khác biệt trong tương lai)
+// User Imports (if there are differences in the future)
 import UserCar from 'views/user/car';
 import UserPay from 'views/user/payment';
-import { MdPayment } from "react-icons/md";
 // Auth Imports
 import SignInCentered from 'views/auth/signIn';
 import SignUpCentered from 'views/auth/signUp';
@@ -28,7 +42,6 @@ import VerifyForgotSignUpCentered from 'views/auth/verifyForgot';
 import AdminComplaint from 'views/admin/complaint';
 import AdminApartment from 'views/admin/apartment';
 import UserTable from 'views/admin/user';
-import { MdLocalParking } from "react-icons/md";
 
 // Admin routes
 export const adminRoutes = [
@@ -75,6 +88,41 @@ export const adminRoutes = [
     icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
     component: <UserTable />,
   },
+  {
+    name: 'Contributions Management',
+    layout: '/admin',
+    path: '/contributions',
+    icon: <Icon as={MdAttachMoney} width="20px" height="20px" color="inherit" />,
+    component: <Contributions />,
+  },
+  {
+    name: 'Invoice Management',
+    layout: '/admin',
+    path: '/invoices',
+    icon: <Icon as={MdReceiptLong} width="20px" height="20px" color="inherit" />,
+    component: <InvoicesAdmin />,
+  },
+  {
+    name: 'Fee Unit Management',
+    layout: '/admin',
+    path: '/fee-units',
+    icon: <Icon as={MdSell} width="20px" height="20px" color="inherit" />,
+    component: <FeeUnitForm />,
+  },
+  // {
+  //   name: 'Batch Utility Bills',
+  //   layout: '/admin',
+  //   path: '/batch-bills',
+  //   icon: <Icon as={MdWaterDrop} width="20px" height="20px" color="inherit" />,
+  //   component: <BatchBillCreation />,
+  // },
+  {
+    name: 'Utility Bills Creation',
+    layout: '/admin',
+    path: '/utility-bills',
+    icon: <Icon as={MdElectricalServices} width="20px" height="20px" color="inherit" />,
+    component: <UtilityBillsCreation />,
+  },
 ];
 
 // User routes
@@ -106,6 +154,20 @@ export const userRoutes = [
     path: '/payment',
     icon: <Icon as={MdPayment} width="20px" height="20px" color="inherit" />,
     component: <UserPay />,
+  },
+  {
+    name: 'Contribution Service',
+    layout: '/user',
+    path: '/contribution',
+    icon: <Icon as={MdAttachMoney} width="20px" height="20px" color="inherit" />,
+    component: <UserContribution />,
+  },
+  {
+    name: 'Invoices',
+    layout: '/user',
+    path: '/invoice',
+    icon: <Icon as={MdReceiptLong} width="20px" height="20px" color="inherit" />,
+    component: <UserInvoice />,
   },
 ];
 
