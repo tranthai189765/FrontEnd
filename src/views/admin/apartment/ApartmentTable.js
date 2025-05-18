@@ -526,7 +526,7 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        'http://localhost:9090/api/apartments/batch-update-status',
+        `${API_BASE_URL}/api/apartments/batch-update-status`,
         {
           ids: selectedRows,
           status: selectedStatus,
