@@ -42,6 +42,7 @@ import { MdCancel, MdCheckCircle } from 'react-icons/md';
 import AppartmentModal from './ApartmentModal';
 import columnsDataIcon from '../dataTables/components/AppartmentIconButton';
 import UserListModal from '../dataTables/components/UserListModal';
+import { FiPlus, FiFilter, FiCheckSquare, FiXSquare, FiDownload, FiEdit } from 'react-icons/fi';
 
 const columnHelper = createColumnHelper();
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL;
@@ -213,6 +214,7 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
   const [selectedRows, setSelectedRows] = React.useState([]);
   const [selectedStatus, setSelectedStatus] = React.useState('');
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [isAllSelected, setIsAllSelected] = React.useState(false);
 
   const [newUser, setNewUser] = React.useState({
     apartmentNumber: '',
@@ -524,7 +526,7 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        `${API_BASE_URL}/api/apartments/batch-update-status`,
+        'http://localhost:9090/api/apartments/batch-update-status',
         {
           ids: selectedRows,
           status: selectedStatus,
@@ -594,6 +596,15 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
     }, 300),
     [],
   );
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedRows([]);
+      setIsAllSelected(false);
+    } else {
+      setSelectedRows(data.map((item) => item.id));
+      setIsAllSelected(true);
+    }
+  };
 
   React.useEffect(() => {
     setIsLoading(true);
@@ -681,8 +692,33 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
         </Flex>
       </Flex>
       <Flex px="25px" mb="8px" justifyContent="space-between" align="center">
-        <Flex align="center" gap="10px">
+        <Flex align="center" gap="8px" flexWrap="wrap">
           <Button
+            leftIcon={<FiPlus />}
+            variant="darkBrand"
+            color="white"
+            fontSize="sm"
+            fontWeight="500"
+            borderRadius="10px"
+            px="15px"
+            py="5px"
+            onClick={() => {
+              onOpen();
+              setMode('create');
+              setNewUser({
+                apartmentNumber: '',
+                roomNumber: '',
+                floor: '',
+                area: '',
+                type: '',
+                status: ''
+              });
+            }}
+          >
+            New Apartment
+          </Button>
+          <Button
+            leftIcon={<FiFilter />}
             variant="darkBrand"
             color="white"
             fontSize="sm"
@@ -692,9 +728,10 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
             py="5px"
             onClick={onFilterOpen}
           >
-            Apartment Filter
+            Filter
           </Button>
           <Button
+            leftIcon={isAllSelected ? <FiXSquare /> : <FiCheckSquare />}
             variant="darkBrand"
             color="white"
             fontSize="sm"
@@ -702,35 +739,12 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
             borderRadius="10px"
             px="15px"
             py="5px"
-            on apariClick={handleExport}
+            onClick={handleToggleSelectAll}
           >
-            Export to Excel File
+            {isAllSelected ? 'Deselect All' : 'Select All'}
           </Button>
           <Button
-            variant="darkBrand"
-            color="white"
-            fontSize="sm"
-            fontWeight="500"
-            borderRadius="10px"
-            px="15px"
-            py="5px"
-            onClick={handleSelectAll}
-          >
-            Select All
-          </Button>
-          <Button
-            variant="darkBrand"
-            color="white"
-            fontSize="sm"
-            fontWeight="500"
-            borderRadius="10px"
-            px="15px"
-            py="5px"
-            onClick={handleDeselectAll}
-          >
-            Deselect All
-          </Button>
-          <Button
+            leftIcon={<FiEdit />}
             variant="darkBrand"
             color="white"
             fontSize="sm"
@@ -742,24 +756,43 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
           >
             Set Status
           </Button>
+          <Button
+            leftIcon={<FiDownload />}
+            variant="darkBrand"
+            color="white"
+            fontSize="sm"
+            fontWeight="500"
+            borderRadius="10px"
+            px="15px"
+            py="5px"
+            onClick={handleExport}
+          >
+            Export
+          </Button>
         </Flex>
-        <Flex align="center"></Flex>
+        <Box w={{ base: '100%', md: '300px' }}>
+          <Input
+            placeholder="Search by apartment number..."
+            onChange={(e) => debouncedSetSearchTerm(e.target.value)}
+            size="md"
+            bg="whiteAlpha.800"
+            borderRadius="8px"
+            _placeholder={{ color: 'gray.500' }}
+          />
+        </Box>
       </Flex>
 
       {isVisible && (
         <>
-          <Box px="25px" mb="12px">
-            <Input
-              placeholder="Search by apartment number..."
-              onChange={(e) => debouncedSetSearchTerm(e.target.value)}
-              size="md"
-              bg="whiteAlpha.800"
-              _placeholder={{ color: 'gray.500' }}
-            />
-          </Box>
-
-          {isLoading ? (
-            <Flex justify="center" align="center" py="20px">
+          {isLoading || !tableData || tableData.length === 0 ? (
+            <Flex 
+              justify="center" 
+              align="center" 
+              py="20px" 
+              minH="200px" 
+              flexDirection="column"
+              gap="4"
+            >
               <Spinner
                 thickness="4px"
                 speed="0.65s"
@@ -767,6 +800,9 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
                 color="blue.500"
                 size="xl"
               />
+              <Text color={textColor} fontSize="md">
+                Loading apartment data...
+              </Text>
             </Flex>
           ) : (
             <>
@@ -823,6 +859,8 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                   isDisabled={currentPage === 1}
                   mr={2}
+                  variant="outline"
+                  size="sm"
                 >
                   Previous
                 </Button>
@@ -832,6 +870,7 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
                     onClick={() => setCurrentPage(page)}
                     variant={currentPage === page ? 'solid' : 'outline'}
                     mx={1}
+                    size="sm"
                   >
                     {page}
                   </Button>
@@ -842,6 +881,8 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
                   }
                   isDisabled={currentPage === totalPages}
                   ml={2}
+                  variant="outline"
+                  size="sm"
                 >
                   Next
                 </Button>
@@ -890,7 +931,17 @@ export default function ColumnTable({ tableData, columnsConfig, refreshData }) {
             </Select>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={handleStatusSubmit}>
+            <Button 
+              variant="darkBrand"
+              color="white"
+              fontSize="sm"
+              fontWeight="500"
+              borderRadius="10px"
+              px="15px"
+              py="5px"
+              mr={3}
+              onClick={handleStatusSubmit}
+            >
               Submit
             </Button>
             <Button variant="ghost" onClick={onStatusModalClose}>
