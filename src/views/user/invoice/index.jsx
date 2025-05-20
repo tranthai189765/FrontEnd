@@ -217,8 +217,9 @@ const UserInvoice = () => {
 
     setIsLoading(true);
     try {
-      // Gửi mảng ID trực tiếp, không đóng gói trong đối tượng
-      const response = await api.post('/invoices/user/create', selectedBills, {
+      // Cần đảm bảo billIds được chuyển đổi thành Long và đóng gói đúng cách
+      const billIds = selectedBills.map(id => Number(id));
+      const response = await api.post('/invoices/user/create', { billIds: billIds }, {
         params: {
           apartmentNumber: selectedApartment.apartmentNumber
         }
@@ -267,9 +268,9 @@ const UserInvoice = () => {
 
     setIsLoading(true);
     try {
-      // Tương tự, gửi mảng ID trực tiếp
-      const billIds = unpaidBills.map(bill => bill.id);
-      const response = await api.post('/invoices/create-all-unpaid', billIds, {
+      // Cần đảm bảo billIds được chuyển đổi thành Long và đóng gói đúng cách
+      const billIds = unpaidBills.map(bill => Number(bill.id));
+      const response = await api.post('/invoices/create-all-unpaid', { billIds: billIds }, {
         params: {
           apartmentNumber: selectedApartment.apartmentNumber
         }
