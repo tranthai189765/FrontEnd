@@ -74,22 +74,26 @@ const ContributionCard = ({ contribution, onRefresh }) => {
 
             {/* Progress bar */}
             <Box mb="15px">
-              <Flex justify="space-between" mb="5px">
-                <Text fontSize="sm" color={secondaryTextColor}>
-                  Collected: {formatMoney(contribution.collected)}
-                </Text>
-                {contribution.target && (
-                  <Text fontSize="sm" color={secondaryTextColor}>
-                    Target: {formatMoney(contribution.target)}
-                  </Text>
-                )}
-              </Flex>
-              <Progress 
-                value={progressPercentage} 
-                size="sm" 
-                colorScheme="brand" 
-                borderRadius="full"
-              />
+              {contribution.targetAmount > 0 && (
+                <>
+                  <Progress 
+                    value={Math.min(Math.round(((contribution.totalPaidAmount || contribution.currentAmount || contribution.collectedAmount || 0) / contribution.targetAmount) * 100), 100)} 
+                    colorScheme="green" 
+                    size="sm" 
+                    borderRadius="md" 
+                    mb={2}
+                    w="100%"
+                    bgColor="gray.200"
+                  />
+                  <Flex justifyContent="space-between" fontSize="sm">
+                    <Text fontWeight="medium">{formatMoney(contribution.totalPaidAmount || contribution.currentAmount || contribution.collectedAmount || 0)}</Text>
+                    <Text color="gray.500">
+                      Target: {formatMoney(contribution.targetAmount || 0)}
+                      {contribution.targetAmount > 0 && ` (${Math.min(Math.round(((contribution.totalPaidAmount || contribution.currentAmount || contribution.collectedAmount || 0) / contribution.targetAmount) * 100), 100)}%)`}
+                    </Text>
+                  </Flex>
+                </>
+              )}
             </Box>
 
             {/* Time */}

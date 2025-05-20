@@ -1,38 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Box,
-  Flex,
-  Text,
-  Spinner,
-  useColorModeValue,
-  useToast,
-  Card,
-  Button,
-  FormControl,
-  FormLabel,
-  Select,
-  Input,
-  InputGroup,
-  InputLeftElement,
-  SimpleGrid,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText,
-  StatArrow,
-  Progress,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  ModalFooter,
-  useDisclosure,
-  Badge,
-} from '@chakra-ui/react';
-import { MdFilterList, MdFileDownload, MdSearch, MdRefresh, MdPayment } from 'react-icons/md';
-import { FaFileExcel } from 'react-icons/fa';
+import {  Box,  Flex,  Text,  Spinner,  useColorModeValue,  useToast,  Card,  Button,  FormControl,  FormLabel,  Select,  Input,  InputGroup,  InputLeftElement,  SimpleGrid,  Stat,  StatLabel,  StatNumber,  StatHelpText,  StatArrow,  Progress,  Modal,  ModalOverlay,  ModalContent,  ModalHeader,  ModalBody,  ModalCloseButton,  ModalFooter,  useDisclosure,  Badge,  Divider,  NumberInput,  NumberInputField,  NumberInputStepper,  NumberIncrementStepper,  NumberDecrementStepper,  Tabs,  TabList,  TabPanels,  Tab,  TabPanel,  Table,  Thead,  Tbody,  Tr,  Th,  Td,  Image,  VStack,  Icon,  Link,  Tooltip,  HStack,  Heading,} from '@chakra-ui/react';
+import { MdFilterList, MdFileDownload, MdSearch, MdRefresh, MdPayment, MdAddCircle, MdHistory, MdOutlineInfo, MdArrowForward, MdOutlineFileDownload, MdAssignment } from 'react-icons/md';
+import { FaRegHandshake, FaHandHoldingUsd } from 'react-icons/fa';
+import api from 'services/apiConfig';
 
 // Components
 import ContributionCard from './components/ContributionCard';
@@ -63,19 +33,30 @@ function UserContribution() {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedContribution, setSelectedContribution] = useState(null);
+  const [contributionAmount, setContributionAmount] = useState(100000); // Giá trị mặc định
+  const [apartments, setApartments] = useState([]);
+  const [selectedApartment, setSelectedApartment] = useState('');
+  const [contributionFormData, setContributionFormData] = useState(null);
+  const [contributionInvoices, setContributionInvoices] = useState([]);
+  const [paymentQrCode, setPaymentQrCode] = useState(null);
+  const [invoiceDetail, setInvoiceDetail] = useState(null);
   
   const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure();
+  const { isOpen: isContributeOpen, onOpen: onContributeOpen, onClose: onContributeClose } = useDisclosure();
+  const { isOpen: isQrOpen, onOpen: onQrOpen, onClose: onQrClose } = useDisclosure();
+  const { isOpen: isInvoiceDetailOpen, onOpen: onInvoiceDetailOpen, onClose: onInvoiceDetailClose } = useDisclosure();
   
   const toast = useToast();
   const textColor = useColorModeValue('secondaryGray.900', 'white');
   const cardBg = useColorModeValue('white', 'navy.700');
-  const statBg = useColorModeValue('white', 'navy.700');
+  const cardShadow = useColorModeValue('0px 18px 40px rgba(112, 144, 176, 0.12)', 'none');
+  const brandColor = useColorModeValue('brand.500', 'brand.400');
   const borderColor = useColorModeValue('gray.200', 'whiteAlpha.100');
 
   useEffect(() => {
     fetchData();
   }, []);
-
+  
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -87,34 +68,56 @@ function UserContribution() {
       const historyData = await getClosedContributions();
       const historyContributions = Array.isArray(historyData) ? historyData : [];
       
-      // Get user contribution stats
-      const userFormData = await getUserFormData();
-      
-      // Calculate total paid amount and total amount to be paid
-      let totalPaid = 0;
-      let totalAmount = 0;
-      let pendingCount = 0;
-      let paidCount = 0;
-      
-      if (userFormData && userFormData.userContributions) {
-        userFormData.userContributions.forEach(contribution => {
-          totalAmount += contribution.amount || 0;
-          
-          if (contribution.paymentStatus === 'PAID') {
-            totalPaid += contribution.amount || 0;
-            paidCount++;
-          } else {
-            pendingCount++;
+      // Get user contribution stats - lấy trực tiếp từ API
+      try {
+        const userContributionsData = await api.get('/contributions/user/stats');
+        if (userContributionsData && userContributionsData.data) {
+          const stats = userContributionsData.data;
+          setUserContributionStats({
+            totalPaid: stats.totalPaid || 0,
+            totalAmount: stats.totalAmount || 0,
+            pendingCount: stats.pendingCount || 0,
+            paidCount: stats.paidCount || 0
+          });
+        }
+      } catch (statsError) {
+        console.error('Error fetching stats:', statsError);
+        
+        // Fallback: Tính toán từ dữ liệu contribution nếu API stats lỗi
+        let totalPaid = 0;
+        let totalAmount = 0;
+        let pendingCount = 0;
+        let paidCount = 0;
+        
+        // Tính từ các contribution đang hiển thị
+        for (const contribution of activeContributions) {
+          try {
+            const detailResponse = await api.get(`/contributions/user/${contribution.id}`);
+            if (detailResponse && detailResponse.data && detailResponse.data.residentContributions) {
+              detailResponse.data.residentContributions.forEach(rc => {
+                const amount = rc.amount || 0;
+                totalAmount += amount;
+                
+                if (rc.paymentStatus === 'PAID') {
+                  totalPaid += amount;
+                  paidCount++;
+                } else {
+                  pendingCount++;
+                }
+              });
+            }
+          } catch (e) {
+            console.error(`Error fetching detail for contribution ${contribution.id}:`, e);
           }
+        }
+        
+        setUserContributionStats({
+          totalPaid,
+          totalAmount,
+          pendingCount,
+          paidCount
         });
       }
-      
-      setUserContributionStats({
-        totalPaid,
-        totalAmount,
-        pendingCount,
-        paidCount
-      });
       
       // Sort to have active contributions at the top
       const allContributions = [...activeContributions, ...historyContributions];
@@ -209,7 +212,7 @@ function UserContribution() {
   const formatDate = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US');
+    return date.toLocaleDateString('vi-VN');
   };
 
   const handleContribute = (contribution, e) => {
@@ -226,7 +229,293 @@ function UserContribution() {
     });
     
     // Open detail modal for user to view info and contribute
-    handleViewDetails(contribution);
+    viewContributionDetail(contribution);
+  };
+
+  const openContributeForm = async (contribution) => {
+    setSelectedContribution(contribution);
+    setContributionAmount(contribution.recommendedAmount || 100000);
+    setIsLoading(true);
+
+    try {
+      const response = await api.get(`/contributions/user/${contribution.id}/contribute-form`);
+      
+      if (response && response.data) {
+        setApartments(response.data.apartments || []);
+        setSelectedApartment(response.data.apartments && response.data.apartments.length > 0 
+          ? response.data.apartments[0].apartmentNumber 
+          : '');
+        setContributionFormData(response.data);
+      }
+      
+      onContributeOpen();
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể mở biểu mẫu đóng góp',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const viewContributionDetail = async (contribution) => {
+    // Lưu contribution hiện tại để hiển thị ngay lập tức
+    const currentContribution = {...contribution};
+    setSelectedContribution(currentContribution);
+    setContributionInvoices([]); // Reset invoices 
+    
+    // Mở modal ngay lập tức với dữ liệu cơ bản
+    onDetailOpen();
+    
+    setIsLoading(true);
+
+    try {
+      const response = await api.get(`/contributions/user/${contribution.id}`);
+      
+      if (response && response.data) {
+        // Cập nhật số tiền đã đóng góp từ residentContributions
+        let collectedAmount = 0;
+        
+        if (response.data.residentContributions && 
+            Array.isArray(response.data.residentContributions)) {
+            
+          // Chỉ tính tổng từ những đóng góp đã thanh toán
+          collectedAmount = response.data.residentContributions
+            .filter(rc => rc.paymentStatus === 'PAID')
+            .reduce((total, rc) => total + (rc.amount || 0), 0);
+            
+          // Lấy danh sách invoice IDs nếu có
+          const invoiceIds = response.data.residentContributions
+            .filter(rc => rc.invoiceId)
+            .map(rc => rc.invoiceId);
+            
+          if (invoiceIds.length > 0) {
+            try {
+              const invoicesPromises = invoiceIds.map(id => api.get(`/invoices/${id}`));
+              const invoicesResponses = await Promise.all(invoicesPromises);
+              const invoicesData = invoicesResponses.map(res => res.data);
+              setContributionInvoices(invoicesData);
+            } catch (error) {
+              console.error("Error fetching invoice details:", error);
+              // Bỏ qua lỗi, không hiển thị cho user
+            }
+          }
+        }
+        
+        // Cập nhật thông tin contribution với số tiền đã thu thập
+        setSelectedContribution({
+          ...currentContribution,
+          ...response.data.contribution,
+          collectedAmount: collectedAmount
+        });
+      }
+    } catch (error) {
+      console.error("Error viewing contribution details:", error);
+      // Không hiển thị thông báo lỗi vì đã hiển thị modal với dữ liệu cơ bản
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const submitContribution = async () => {
+    if (!selectedContribution || !selectedApartment) {
+      toast({
+        title: 'Cảnh báo',
+        description: 'Vui lòng điền đầy đủ thông tin',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!contributionAmount || contributionAmount <= 0) {
+      toast({
+        title: 'Cảnh báo',
+        description: 'Vui lòng nhập số tiền hợp lệ',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await api.post('/contributions/user/contribute', {
+        contributionId: selectedContribution.id,
+        apartmentNumber: selectedApartment,
+        amount: contributionAmount,
+        notes: `Đóng góp cho ${selectedContribution.title || 'khoản đóng góp'}`
+      });
+      
+      toast({
+        title: 'Thành công',
+        description: 'Đã tạo đóng góp thành công',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      // Nếu có invoice ID được trả về, mở modal thanh toán
+      if (response.data) {
+        const invoiceResponse = await api.get(`/invoices/${response.data}`);
+        if (invoiceResponse.data) {
+          // Hiển thị QR code thanh toán
+          showPaymentQr(invoiceResponse.data);
+        }
+      }
+      
+      onContributeClose();
+      fetchData();
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: error.response?.data || 'Không thể tạo đóng góp',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const showPaymentQr = async (invoice) => {
+    setIsLoading(true);
+    try {
+      let qrCodeUrl = invoice.qrCodeUrl;
+      
+      // Nếu không có QR code trong invoice, tạo QR code mới
+      if (!qrCodeUrl) {
+        const qrResponse = await api.get(`/qrcode/invoice/${invoice.id}`);
+        if (qrResponse.data && qrResponse.data.qrCodeUrl) {
+          qrCodeUrl = qrResponse.data.qrCodeUrl;
+        }
+      }
+      
+      setPaymentQrCode({
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        qrCode: qrCodeUrl,
+        amount: invoice.totalAmount
+      });
+      
+      onQrOpen();
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể tải mã QR thanh toán',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const regenerateQrCode = async () => {
+    if (!paymentQrCode?.invoiceId) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await api.get(`/qrcode/invoice/regenerate/${paymentQrCode.invoiceId}`);
+      
+      if (response.data && response.data.qrCodeUrl) {
+        setPaymentQrCode({
+          ...paymentQrCode,
+          qrCode: response.data.qrCodeUrl
+        });
+      }
+      
+      toast({
+        title: 'Thành công',
+        description: 'Đã tạo lại mã QR thành công',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể tạo lại mã QR',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const downloadQrCode = () => {
+    if (!paymentQrCode?.qrCode) return;
+    
+    // Tải xuống ảnh từ URL
+    fetch(paymentQrCode.qrCode)
+      .then(response => response.blob())
+      .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `invoice-qr-${paymentQrCode.invoiceNumber}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => window.URL.revokeObjectURL(url), 100);
+      })
+      .catch(error => {
+        console.error('Lỗi tải xuống QR code:', error);
+        toast({
+          title: 'Lỗi',
+          description: 'Không thể tải xuống mã QR',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+      });
+  };
+
+  const getStatusColor = (status) => {
+    if (status === 'PAID' || status === 'ACTIVE') return 'green';
+    if (status === 'UNPAID' || status === 'CLOSED') return 'orange';
+    if (status === 'FAILED' || status === 'CANCELED') return 'red';
+    return 'gray';
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'PAID': return 'Paid';
+      case 'UNPAID': return 'Unpaid';
+      case 'FAILED': return 'Failed';
+      case 'ACTIVE': return 'Active';
+      case 'CLOSED': return 'Closed';
+      case 'CANCELED': return 'Canceled';
+      default: return status;
+    }
+  };
+
+  const viewInvoiceDetail = async (invoiceId) => {
+    try {
+      const response = await api.get(`/invoices/${invoiceId}`);
+      // Lưu chi tiết hóa đơn vào state và mở modal hoặc chuyển hướng
+      // Ví dụ: nếu bạn đã có state và modal
+      setInvoiceDetail(response.data);
+      onInvoiceDetailOpen(); // Cần thêm state và useDisclosure cho modal này
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load invoice details',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   return (
@@ -283,17 +572,21 @@ function UserContribution() {
         <Card>
           <Stat p={4}>
             <StatLabel>Completion Rate</StatLabel>
-            <StatNumber>{userContributionStats.totalAmount > 0 
-              ? Math.round((userContributionStats.totalPaid / userContributionStats.totalAmount) * 100) 
-              : 0}%</StatNumber>
+            <StatNumber>
+              {userContributionStats.totalAmount > 0 
+                ? Math.min(Math.round((userContributionStats.totalPaid / userContributionStats.totalAmount) * 10000) / 100, 100)
+                : 0}%
+            </StatNumber>
             <Progress 
               value={userContributionStats.totalAmount > 0 
-                ? (userContributionStats.totalPaid / userContributionStats.totalAmount) * 100 
+                ? Math.min((userContributionStats.totalPaid / userContributionStats.totalAmount) * 100, 100) 
                 : 0} 
               size="sm" 
               colorScheme="green"
               borderRadius="md"
               mt={2}
+              w="100%"
+              bgColor="gray.200"
             />
           </Stat>
         </Card>
@@ -381,7 +674,7 @@ function UserContribution() {
                 p="20px"
                 borderRadius="lg"
                 boxShadow="md"
-                onClick={() => handleViewDetails(contribution)}
+                onClick={() => viewContributionDetail(contribution)}
                 cursor="pointer"
                 _hover={{ transform: 'translateY(-5px)', transition: 'all 0.3s' }}
               >
@@ -418,18 +711,23 @@ function UserContribution() {
                   <Text>{formatDate(contribution.endDate) || 'No limit'}</Text>
                 </Flex>
 
-                {contribution.targetAmount && (
+                {contribution.targetAmount > 0 && (
                   <>
                     <Progress 
-                      value={(contribution.collectedAmount / contribution.targetAmount) * 100 || 0} 
+                      value={Math.min(((contribution.totalPaidAmount || contribution.currentAmount || contribution.collectedAmount || 0) / contribution.targetAmount) * 100, 100)} 
                       colorScheme="green" 
                       size="sm" 
                       borderRadius="md" 
                       mb={2}
+                      w="100%"
+                      bgColor="gray.200"
                     />
                     <Flex justifyContent="space-between" fontSize="sm">
-                      <Text fontWeight="medium">{formatCurrency(contribution.collectedAmount || 0)}</Text>
-                      <Text color="gray.500">Target: {formatCurrency(contribution.targetAmount)}</Text>
+                      <Text fontWeight="medium">{formatCurrency(contribution.totalPaidAmount || contribution.currentAmount || contribution.collectedAmount || 0)}</Text>
+                      <Text color="gray.500">
+                        Target: {formatCurrency(contribution.targetAmount)}
+                        ({Math.min(Math.round(((contribution.totalPaidAmount || contribution.currentAmount || contribution.collectedAmount || 0) / contribution.targetAmount) * 100), 100)}%)
+                      </Text>
                     </Flex>
                   </>
                 )}
@@ -461,144 +759,300 @@ function UserContribution() {
       </Card>
 
       {/* Detail Modal */}
-      <Modal isOpen={isDetailOpen} onClose={onDetailClose} size="lg">
+      <Modal isOpen={isDetailOpen} onClose={onDetailClose} size="xl">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>{selectedContribution?.title || selectedContribution?.name || 'Contribution Details'}</ModalHeader>
+          <ModalHeader>Contribution Details</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             {isLoading ? (
-              <Flex justifyContent="center" alignItems="center" height="200px">
-                <Spinner size="xl" color="brand.500" />
+              <Flex justify="center" align="center" py={10}>
+                <Spinner />
               </Flex>
             ) : selectedContribution ? (
               <Box>
-                <Badge 
-                  colorScheme={
-                    selectedContribution.status === 'ACTIVE' || selectedContribution.status === 'active' 
-                      ? 'green' 
-                      : selectedContribution.status === 'CLOSED' || selectedContribution.status === 'closed'
-                        ? 'orange'
-                        : 'gray'
-                  }
-                  mb={4}
-                >
-                  {selectedContribution.status}
-                </Badge>
-                
-                <Text fontSize="md" mb={4}>{selectedContribution.description}</Text>
-                
-                <SimpleGrid columns={2} spacing={4} mb={4}>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5} mb={5}>
                   <Box>
-                    <Text fontWeight="medium" fontSize="sm" color="gray.500">Contribution Type</Text>
-                    <Text>{selectedContribution.contributionTypeName || (selectedContribution.type && selectedContribution.type.name) || 'General'}</Text>
+                    <Heading size="md" mb={3}>{selectedContribution.title}</Heading>
+                    <Badge colorScheme={getStatusColor(selectedContribution.status)} mb={3}>
+                      {getStatusText(selectedContribution.status)}
+                    </Badge>
+                    <Text fontSize="sm" mb={3}>{selectedContribution.description}</Text>
+                    
+                    <SimpleGrid columns={2} spacingX={2} spacingY={1} mb={3}>
+                      <Text fontSize="sm" fontWeight="bold">Contribution Type:</Text>
+                      <Text fontSize="sm">{selectedContribution.contributionTypeName}</Text>
+                      
+                      <Text fontSize="sm" fontWeight="bold">Start Date:</Text>
+                      <Text fontSize="sm">{formatDate(selectedContribution.startDate)}</Text>
+                      
+                      <Text fontSize="sm" fontWeight="bold">End Date:</Text>
+                      <Text fontSize="sm">{formatDate(selectedContribution.endDate) || 'No limit'}</Text>
+                    </SimpleGrid>
                   </Box>
+                  
                   <Box>
-                    <Text fontWeight="medium" fontSize="sm" color="gray.500">Created Date</Text>
-                    <Text>{formatDate(selectedContribution.createdAt)}</Text>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="medium" fontSize="sm" color="gray.500">Start Date</Text>
-                    <Text>{formatDate(selectedContribution.startDate)}</Text>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="medium" fontSize="sm" color="gray.500">End Date</Text>
-                    <Text>{formatDate(selectedContribution.endDate) || 'No limit'}</Text>
+                    <Stat mb={3}>
+                      <StatLabel>Total Collected Amount</StatLabel>
+                      <StatNumber>{formatCurrency(selectedContribution.totalPaidAmount || selectedContribution.currentAmount || selectedContribution.collectedAmount || 0)}</StatNumber>
+                      {selectedContribution.targetAmount > 0 && (
+                        <StatHelpText>
+                          Target: {formatCurrency(selectedContribution.targetAmount)}
+                          {` (${Math.round(((selectedContribution.totalPaidAmount || selectedContribution.currentAmount || selectedContribution.collectedAmount || 0) / selectedContribution.targetAmount) * 10000) / 100}%)`}
+                        </StatHelpText>
+                      )}
+                    </Stat>
+                    
+                    {selectedContribution.status === 'ACTIVE' && (
+                      <Button 
+                        colorScheme="brand" 
+                        leftIcon={<MdAddCircle />} 
+                        w="100%"
+                        onClick={() => openContributeForm(selectedContribution)}
+                      >
+                        Contribute Now
+                      </Button>
+                    )}
                   </Box>
                 </SimpleGrid>
                 
+                <Divider my={4} />
+                
+                {/* Hiển thị danh sách hóa đơn liên quan đến đóng góp */}
+                <Box>
+                  <Heading size="sm" mb={3}>Your Contribution Invoices</Heading>
+                  
+                  {contributionInvoices && contributionInvoices.length > 0 ? (
+                    <Table variant="simple" size="sm">
+                      <Thead>
+                        <Tr>
+                          <Th>INVOICE NUMBER</Th>
+                          <Th>CREATED DATE</Th>
+                          <Th>AMOUNT</Th>
+                          <Th>STATUS</Th>
+                          <Th>ACTIONS</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {contributionInvoices.map((invoice) => (
+                          <Tr key={invoice.id || Math.random()}>
+                            <Td>{invoice.invoiceNumber || '-'}</Td>
+                            <Td>{formatDate(invoice.createdAt)}</Td>
+                            <Td>{formatCurrency(invoice.totalAmount || 0)}</Td>
+                            <Td>
+                              <Badge 
+                                colorScheme={getStatusColor(invoice.status)}
+                                px={2}
+                                py={1}
+                                borderRadius="full"
+                              >
+                                {getStatusText(invoice.status)}
+                              </Badge>
+                            </Td>
+                            <Td>
+                              {invoice.status === 'UNPAID' && (
+                                <Button 
+                                  colorScheme="green" 
+                                  size="xs"
+                                  leftIcon={<MdPayment />}
+                                  onClick={() => showPaymentQr(invoice)}
+                                >
+                                  Pay
+                                </Button>
+                              )}
+                            </Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  ) : (
+                    <Text color="gray.500">
+                      You don't have any invoices for this contribution yet. Create a contribution first.
+                    </Text>
+                  )}
+                </Box>
+
                 {selectedContribution.targetAmount && (
                   <Box mb={4}>
                     <Flex justifyContent="space-between" mb={1}>
                       <Text fontWeight="medium">Progress</Text>
-                      <Text>{Math.round((selectedContribution.collectedAmount / selectedContribution.targetAmount) * 100 || 0)}%</Text>
+                      <Text>{Math.min(Math.round(((selectedContribution.totalPaidAmount || selectedContribution.currentAmount || selectedContribution.collectedAmount || 0) / selectedContribution.targetAmount) * 100), 100)}%</Text>
                     </Flex>
                     <Progress 
-                      value={(selectedContribution.collectedAmount / selectedContribution.targetAmount) * 100 || 0} 
+                      value={Math.min(Math.round(((selectedContribution.totalPaidAmount || selectedContribution.currentAmount || selectedContribution.collectedAmount || 0) / selectedContribution.targetAmount) * 100), 100)} 
                       colorScheme="green" 
                       size="sm" 
                       borderRadius="md" 
                       mb={2}
+                      w="100%"
+                      bgColor="gray.200"
                     />
                     <Flex justifyContent="space-between" fontSize="sm">
-                      <Text>{formatCurrency(selectedContribution.collectedAmount || 0)}</Text>
+                      <Text>{formatCurrency(selectedContribution.totalPaidAmount || selectedContribution.currentAmount || selectedContribution.collectedAmount || 0)}</Text>
                       <Text color="gray.500">Target: {formatCurrency(selectedContribution.targetAmount)}</Text>
                     </Flex>
                   </Box>
                 )}
-                
-                {/* Section for invoice or payment buttons will be added here */}
-                {/* Placeholder for invoice section */}
-                <Box mt={4} pt={4} borderTopWidth="1px">
-                  <Text fontWeight="medium" mb={3}>Your Contribution History</Text>
-                  {selectedContribution.userContributions && selectedContribution.userContributions.length > 0 ? (
-                    selectedContribution.userContributions.map((item, index) => (
-                      <Card key={index} p={3} mb={3} variant="outline">
-                        <Flex justifyContent="space-between" alignItems="center">
-                          <Box>
-                            <Text fontWeight="medium">{formatCurrency(item.amount)}</Text>
-                            <Text fontSize="sm" color="gray.500">{formatDate(item.createdAt)}</Text>
-                          </Box>
-                          <Badge colorScheme={item.paymentStatus === 'PAID' ? 'green' : 'orange'}>
-                            {item.paymentStatus === 'PAID' ? 'Paid' : 'Unpaid'}
-                          </Badge>
-                        </Flex>
-                        {item.paymentStatus !== 'PAID' && (
-                          <Button 
-                            colorScheme="green" 
-                            size="sm" 
-                            leftIcon={<MdPayment />} 
-                            mt={2}
-                            width="100%"
-                          >
-                            Pay Now
-                          </Button>
-                        )}
-                      </Card>
-                    ))
-                  ) : (
-                    <Text fontSize="sm" color="gray.500">You don't have any contributions for this item yet</Text>
-                  )}
-                </Box>
               </Box>
             ) : (
-              <Text>No details found</Text>
+              <Text>No contribution details found</Text>
             )}
           </ModalBody>
           <ModalFooter>
-            {selectedContribution && (selectedContribution.status === 'ACTIVE' || selectedContribution.status === 'active') && (
-              <Button
-                colorScheme="green"
-                leftIcon={<MdPayment />}
-                mr={3}
-                onClick={() => {
-                  const amount = prompt('Enter the amount you want to contribute (VND):');
-                  if (amount && !isNaN(amount) && parseFloat(amount) > 0) {
-                    // Call contribution API with the entered amount
-                    toast({
-                      title: 'Success',
-                      description: `Contributed ${formatCurrency(parseFloat(amount))} to ${selectedContribution.title || selectedContribution.name}`,
-                      status: 'success',
-                      duration: 3000,
-                      isClosable: true,
-                    });
-                    onDetailClose();
-                    setTimeout(handleRefresh, 1000);
-                  } else if (amount !== null) {
-                    toast({
-                      title: 'Error',
-                      description: 'Please enter a valid amount',
-                      status: 'error',
-                      duration: 3000,
-                      isClosable: true,
-                    });
-                  }
-                }}
-              >
-                Contribute Now
-              </Button>
-            )}
             <Button onClick={onDetailClose}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Modal đóng góp */}
+      <Modal isOpen={isContributeOpen} onClose={onContributeClose} size="md">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>New Contribution</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {isLoading ? (
+              <Flex justify="center" align="center" py={10}>
+                <Spinner />
+              </Flex>
+            ) : selectedContribution ? (
+              <VStack spacing={4} align="stretch">
+                <Text fontWeight="bold" fontSize="lg">{selectedContribution.title}</Text>
+                
+                <FormControl isRequired>
+                  <FormLabel>Apartment</FormLabel>
+                  <Select 
+                    value={selectedApartment}
+                    onChange={(e) => setSelectedApartment(e.target.value)}
+                  >
+                    {apartments.map((apt) => (
+                      <option key={apt.id} value={apt.apartmentNumber}>{apt.apartmentNumber}</option>
+                    ))}
+                  </Select>
+                </FormControl>
+                
+                <FormControl isRequired>
+                  <FormLabel>Contribution Amount</FormLabel>
+                  <NumberInput 
+                    min={1000} 
+                    step={10000}
+                    value={contributionAmount}
+                    onChange={(valueString) => setContributionAmount(Number(valueString))}
+                  >
+                    <NumberInputField />
+                    <NumberInputStepper>
+                      <NumberIncrementStepper />
+                      <NumberDecrementStepper />
+                    </NumberInputStepper>
+                  </NumberInput>
+                  <Text fontSize="sm" color="gray.500" mt={1}>
+                    {formatCurrency(contributionAmount)}
+                  </Text>
+                </FormControl>
+                
+                {selectedContribution.description && (
+                  <Box p={3} bg="gray.50" borderRadius="md">
+                    <Text fontSize="sm" fontStyle="italic">{selectedContribution.description}</Text>
+                  </Box>
+                )}
+              </VStack>
+            ) : (
+              <Text>Contribution information not found</Text>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button 
+              colorScheme="brand" 
+              mr={3}
+              isLoading={isLoading}
+              onClick={submitContribution}
+            >
+              Contribute
+            </Button>
+            <Button onClick={onContributeClose}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Modal QR payment */}
+      <Modal isOpen={isQrOpen} onClose={onQrClose} size="md">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Payment QR Code</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {isLoading ? (
+              <Flex justify="center" align="center" py={10}>
+                <Spinner />
+              </Flex>
+            ) : paymentQrCode ? (
+              <VStack spacing={4} align="center">
+                <Text>Invoice: <strong>{paymentQrCode.invoiceNumber}</strong></Text>
+                <Text fontWeight="bold">Amount: {formatCurrency(paymentQrCode.amount)}</Text>
+                
+                <Box borderWidth="1px" borderRadius="lg" p={4} bg="white" width="100%" textAlign="center">
+                  <Image 
+                    src={paymentQrCode.qrCode}
+                    alt="Payment QR Code"
+                    maxW="250px"
+                    mx="auto"
+                  />
+                </Box>
+                
+                <Text fontSize="sm" textAlign="center">
+                  Scan this QR code with your banking app to complete payment
+                </Text>
+              </VStack>
+            ) : (
+              <Text textAlign="center">No QR code available</Text>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              leftIcon={<MdRefresh />}
+              colorScheme="blue"
+              mr={3}
+              onClick={regenerateQrCode}
+              isDisabled={!paymentQrCode}
+            >
+              Regenerate QR
+            </Button>
+            <Button
+              leftIcon={<MdOutlineFileDownload />}
+              colorScheme="green"
+              mr={3}
+              onClick={downloadQrCode}
+              isDisabled={!paymentQrCode}
+            >
+              Download QR
+            </Button>
+            <Button onClick={onQrClose}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      
+      {/* Invoice Detail Modal */}
+      <Modal isOpen={isInvoiceDetailOpen} onClose={onInvoiceDetailClose} size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Invoice Details</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {isLoading ? (
+              <Flex justify="center" align="center" py={10}>
+                <Spinner />
+              </Flex>
+            ) : invoiceDetail ? (
+              <Box>
+                {/* Display invoice information */}
+                {/* ... */}
+              </Box>
+            ) : (
+              <Text>Invoice information not found</Text>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={onInvoiceDetailClose}>Close</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

@@ -22,6 +22,7 @@ import {
   Th,
   Thead,
   Tr,
+  Tfoot,
   useColorModeValue,
   useDisclosure,
   useToast,
@@ -39,6 +40,7 @@ import {
   NumberInputField,
   Image,
   Stack,
+  Tooltip,
 } from '@chakra-ui/react';
 import Card from 'components/card/Card';
 import api from 'services/apiConfig';
@@ -1037,9 +1039,10 @@ const InvoicesAdmin = () => {
                                 onChange={handleSelectAllBills}
                               />
                             </Th>
-                            <Th>Bill Number</Th>
+                            <Th>Bill ID</Th>
                             <Th>Type</Th>
                             <Th>Due Date</Th>
+                            <Th>Description</Th>
                             <Th isNumeric>Amount</Th>
                           </Tr>
                         </Thead>
@@ -1052,9 +1055,18 @@ const InvoicesAdmin = () => {
                                   onChange={() => handleSelectBill(bill.id)}
                                 />
                               </Td>
-                              <Td>{bill.billNumber || "-"}</Td>
+                              <Td>{bill.id || "-"}</Td>
                               <Td>{bill.billTypeName || bill.billType}</Td>
                               <Td>{formatDate(bill.dueDate)}</Td>
+                              <Td>
+                                <Tooltip 
+                                  label={bill.description || "No description"} 
+                                  hasArrow
+                                  placement="top"
+                                >
+                                  <Text noOfLines={1}>{bill.description || "N/A"}</Text>
+                                </Tooltip>
+                              </Td>
                               <Td isNumeric>{formatCurrency(bill.amount)}</Td>
                             </Tr>
                           ))}
@@ -1172,7 +1184,8 @@ const InvoicesAdmin = () => {
                         <Tr>
                           <Th>Bill Number</Th>
                           <Th>Type</Th>
-                          <Th>Amount</Th>
+                          <Th>Description</Th>
+                          <Th isNumeric>Amount</Th>
                         </Tr>
                       </Thead>
                       <Tbody>
@@ -1180,10 +1193,17 @@ const InvoicesAdmin = () => {
                           <Tr key={bill.id}>
                             <Td>{bill.billNumber || "-"}</Td>
                             <Td>{bill.billTypeName || bill.billType}</Td>
-                            <Td>{formatCurrency(bill.amount)}</Td>
+                            <Td>{bill.description || "N/A"}</Td>
+                            <Td isNumeric>{formatCurrency(bill.amount)}</Td>
                           </Tr>
                         ))}
                       </Tbody>
+                      <Tfoot>
+                        <Tr>
+                          <Td colSpan={3} textAlign="right" fontWeight="bold">Total:</Td>
+                          <Td isNumeric fontWeight="bold">{formatCurrency(invoiceDetail.totalAmount)}</Td>
+                        </Tr>
+                      </Tfoot>
                     </Table>
                   ) : (
                     <Text>No bills found</Text>

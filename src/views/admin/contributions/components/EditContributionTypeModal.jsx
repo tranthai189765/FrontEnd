@@ -13,6 +13,9 @@ import {
   Input,
   Textarea,
   useToast,
+  Switch,
+  Flex,
+  Text,
 } from '@chakra-ui/react';
 
 import { updateContributionType } from '../services/contributionService';
@@ -20,6 +23,7 @@ import { updateContributionType } from '../services/contributionService';
 const EditContributionTypeModal = ({ isOpen, onClose, contributionType, onRefresh }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [isActive, setIsActive] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
@@ -27,6 +31,7 @@ const EditContributionTypeModal = ({ isOpen, onClose, contributionType, onRefres
     if (isOpen && contributionType) {
       setName(contributionType.name || '');
       setDescription(contributionType.description || '');
+      setIsActive(contributionType.isActive !== undefined ? contributionType.isActive : true);
     }
   }, [isOpen, contributionType]);
 
@@ -47,6 +52,7 @@ const EditContributionTypeModal = ({ isOpen, onClose, contributionType, onRefres
       await updateContributionType(contributionType.id, {
         name,
         description,
+        isActive,
       });
 
       toast({
@@ -101,6 +107,23 @@ const EditContributionTypeModal = ({ isOpen, onClose, contributionType, onRefres
               fontSize="sm"
               borderRadius="15px"
             />
+          </FormControl>
+          
+          <FormControl mt={4}>
+            <Flex align="center">
+              <FormLabel htmlFor="is-active-edit" mb="0" fontSize="sm" fontWeight="500">
+                Active Status
+              </FormLabel>
+              <Switch 
+                id="is-active-edit" 
+                isChecked={isActive} 
+                onChange={(e) => setIsActive(e.target.checked)}
+                colorScheme="green"
+              />
+              <Text ml={2} fontSize="sm">
+                {isActive ? 'Active' : 'Inactive'}
+              </Text>
+            </Flex>
           </FormControl>
         </ModalBody>
 

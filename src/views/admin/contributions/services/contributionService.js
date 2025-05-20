@@ -101,6 +101,22 @@ export const getAdminContributions = async () => {
   }
 };
 
+// API để lấy danh sách resident contributions cho admin
+export const getResidentContributions = async () => {
+  try {
+    console.log('Fetching resident contributions data...');
+    const response = await api.get('/contributions/admin/resident-contributions');
+    return response.data.contributions || [];
+  } catch (error) {
+    console.error('Error fetching resident contributions:', error);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
+    throw error;
+  }
+};
+
 export const getAdminContributionFormData = async () => {
   try {
     const response = await api.get('/contributions/admin/form-data');

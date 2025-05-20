@@ -13,6 +13,9 @@ import {
   Input,
   Textarea,
   useToast,
+  Switch,
+  Flex,
+  Text,
 } from '@chakra-ui/react';
 
 import { createContributionType } from '../services/contributionService';
@@ -20,6 +23,7 @@ import { createContributionType } from '../services/contributionService';
 const AddContributionTypeModal = ({ isOpen, onClose, onRefresh }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [isActive, setIsActive] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
@@ -40,24 +44,28 @@ const AddContributionTypeModal = ({ isOpen, onClose, onRefresh }) => {
       await createContributionType({
         name,
         description,
+        isActive,
       });
 
       toast({
         title: 'Success',
-        description: 'New contribution type added successfully',
+        description: 'Contribution type created successfully',
         status: 'success',
         duration: 3000,
         isClosable: true,
       });
 
+      // Reset the form
       setName('');
       setDescription('');
+      setIsActive(true);
+      
       onClose();
       onRefresh();
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Unable to add contribution type, please try again later.',
+        description: 'Unable to create contribution type, please try again later.',
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -103,6 +111,23 @@ const AddContributionTypeModal = ({ isOpen, onClose, onRefresh }) => {
               borderRadius="15px"
             />
           </FormControl>
+          
+          <FormControl mt={4}>
+            <Flex align="center">
+              <FormLabel htmlFor="is-active" mb="0" fontSize="sm" fontWeight="500">
+                Active Status
+              </FormLabel>
+              <Switch 
+                id="is-active" 
+                isChecked={isActive} 
+                onChange={(e) => setIsActive(e.target.checked)}
+                colorScheme="green"
+              />
+              <Text ml={2} fontSize="sm">
+                {isActive ? 'Active' : 'Inactive'}
+              </Text>
+            </Flex>
+          </FormControl>
         </ModalBody>
 
         <ModalFooter>
@@ -113,7 +138,7 @@ const AddContributionTypeModal = ({ isOpen, onClose, onRefresh }) => {
             onClick={handleSubmit}
             isLoading={isLoading}
           >
-            Save
+            Create
           </Button>
           <Button onClick={handleClose}>Cancel</Button>
         </ModalFooter>

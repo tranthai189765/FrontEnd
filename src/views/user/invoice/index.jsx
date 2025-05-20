@@ -21,6 +21,7 @@ import {
   Th,
   Thead,
   Tr,
+  Tfoot,
   useColorModeValue,
   useDisclosure,
   useToast,
@@ -126,9 +127,18 @@ const UserInvoice = () => {
   const fetchUnpaidBills = async (apartmentNumber) => {
     setIsLoading(true);
     try {
-      const response = await api.get(`/invoices/user/form-data?apartmentNumber=${apartmentNumber}`);
-      if (response.data.bills) {
+      // Gọi API không cần thêm tham số filter
+      const response = await api.get(`/invoices/user/form-data`, {
+        params: {
+          apartmentNumber: apartmentNumber
+        }
+      });
+      
+      // API đã trả về unpaid bills, chỉ cần lấy ra từ response
+      if (response.data && response.data.bills) {
         setUnpaidBills(response.data.bills);
+      } else {
+        setUnpaidBills([]);
       }
     } catch (error) {
       toast({
@@ -207,6 +217,7 @@ const UserInvoice = () => {
 
     setIsLoading(true);
     try {
+      // Gửi mảng ID trực tiếp, không đóng gói trong đối tượng
       const response = await api.post('/invoices/user/create', selectedBills, {
         params: {
           apartmentNumber: selectedApartment.apartmentNumber
@@ -231,7 +242,7 @@ const UserInvoice = () => {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to create invoice',
+        description: error.response?.data || 'Failed to create invoice',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -256,7 +267,9 @@ const UserInvoice = () => {
 
     setIsLoading(true);
     try {
-      const response = await api.post('/invoices/create-all-unpaid', null, {
+      // Tương tự, gửi mảng ID trực tiếp
+      const billIds = unpaidBills.map(bill => bill.id);
+      const response = await api.post('/invoices/create-all-unpaid', billIds, {
         params: {
           apartmentNumber: selectedApartment.apartmentNumber
         }
@@ -447,9 +460,6 @@ const UserInvoice = () => {
         case 'WORD':
           endpoint = `/invoices/${id}/download`;
           break;
-        case 'EXCEL':
-          endpoint = `/invoices/${id}/downloadExcel`;
-          break;
         case 'VIEW':
           endpoint = `/invoices/${id}/viewPdf`;
           break;
@@ -478,21 +488,18 @@ const UserInvoice = () => {
       
       // Trích xuất filename từ Content-Disposition nếu có
       if (contentDisposition) {
-        // Format: "attachment; filename=filename.extension"
-        const filenameMatch = contentDisposition.match(/filename=([^;]+)/);
-        if (filenameMatch && filenameMatch[1]) {
-          filename = filenameMatch[1].trim();
-        } else {
-          // Nếu không tìm thấy filename, thêm extension dựa vào loại
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+        if (matches != null && matches[1]) {
+          filename = matches[1].replace(/['"]/g, '');
+        } else if (contentDisposition.includes('attachment')) {
+          // Nếu là attachment nhưng không có filename rõ ràng
           if (type === 'PDF') filename += '.pdf';
           else if (type === 'WORD') filename += '.docx';
-          else if (type === 'EXCEL') filename += '.xlsx';
         }
       } else {
         // Không có Content-Disposition, thêm extension dựa vào loại
         if (type === 'PDF') filename += '.pdf';
         else if (type === 'WORD') filename += '.docx';
-        else if (type === 'EXCEL') filename += '.xlsx';
       }
       
       // Chuyển response thành blob với content-type từ server
@@ -1038,22 +1045,28 @@ const UserInvoice = () => {
                     <Table variant='simple' size='sm'>
                       <Thead>
                         <Tr>
-                          <Th>ID</Th>
                           <Th>Bill Number</Th>
                           <Th>Type</Th>
-                          <Th>Amount</Th>
+                          <Th>Description</Th>
+                          <Th isNumeric>Amount</Th>
                         </Tr>
                       </Thead>
                       <Tbody>
                         {invoiceDetail.bills.map(bill => (
                           <Tr key={bill.id}>
-                            <Td>{bill.id}</Td>
-                            <Td>{bill.billNumber}</Td>
+                            <Td>{bill.billNumber || "-"}</Td>
                             <Td>{bill.billTypeName || bill.billType}</Td>
-                            <Td>{formatCurrency(bill.amount)}</Td>
+                            <Td>{bill.description || "N/A"}</Td>
+                            <Td isNumeric>{formatCurrency(bill.amount)}</Td>
                           </Tr>
                         ))}
                       </Tbody>
+                      <Tfoot>
+                        <Tr>
+                          <Td colSpan={3} textAlign="right" fontWeight="bold">Total:</Td>
+                          <Td isNumeric fontWeight="bold">{formatCurrency(invoiceDetail.totalAmount)}</Td>
+                        </Tr>
+                      </Tfoot>
                     </Table>
                   ) : (
                     <Text>No bills found</Text>

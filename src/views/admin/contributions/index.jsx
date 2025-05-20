@@ -58,8 +58,10 @@ import {
   exportContributionsToExcel,
   getContributionById,
   updateContribution,
+  getResidentContributions
 } from './services/contributionService';
 import api from 'services/apiConfig';
+import { viewInvoice, markInvoiceAsPaid } from 'services/invoiceService';
 
 // Custom components
 import Card from 'components/card/Card';
@@ -71,6 +73,7 @@ function Contributions() {
   const { isOpen: isOpenAddType, onOpen: onOpenAddType, onClose: onCloseAddType } = useDisclosure();
   const { isOpen: isOpenAddContribution, onOpen: onOpenAddContribution, onClose: onCloseAddContribution } = useDisclosure();
   const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure();
+  const { isOpen: isInvoiceDetailOpen, onOpen: onInvoiceDetailOpen, onClose: onInvoiceDetailClose } = useDisclosure();
   
   const toast = useToast();
 
@@ -98,6 +101,7 @@ function Contributions() {
   const [showFilters, setShowFilters] = useState(false);
   const [showResidentFilters, setShowResidentFilters] = useState(false);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [invoiceDetail, setInvoiceDetail] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -130,11 +134,15 @@ function Contributions() {
         
         // Merge the two types for filtering purposes, but mark their status
         allContributions = [...activeContributions, ...closedContributionsData];
-        
-        // Get resident contributions
-        if (response.residentContributions) {
-          setResidentContributions(response.residentContributions);
-        }
+      }
+
+      // Lấy danh sách resident contributions khi cần
+      try {
+        const residentContributionsData = await getResidentContributions();
+        setResidentContributions(residentContributionsData);
+        console.log('Resident contributions loaded:', residentContributionsData.length);
+      } catch (residentError) {
+        console.error('Error fetching resident contributions:', residentError);
       }
 
       const typesData = await getContributionTypes();
@@ -512,6 +520,88 @@ function Contributions() {
     return date.toLocaleDateString('en-US');
   };
 
+  // Sửa hàm xử lý khi chuyển tab để đóng tất cả modal
+  const handleTabChange = (index) => {
+    setActiveTabIndex(index);
+    // Đóng tất cả các modal khi chuyển tab
+    onDetailClose();
+    onInvoiceDetailClose();
+  };
+
+  // Thêm function để xem chi tiết invoice
+  const handleViewInvoice = async (invoiceId, e) => {
+    if (e) e.stopPropagation();
+    if (!invoiceId) {
+      toast({
+        title: 'Thông báo',
+        description: 'Không tìm thấy hóa đơn cho khoản đóng góp này',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      const invoiceData = await api.get(`/invoices/${invoiceId}`);
+      if (invoiceData && invoiceData.data) {
+        setInvoiceDetail(invoiceData.data);
+        onInvoiceDetailOpen();  // Thay đổi này để sử dụng onInvoiceDetailOpen thay vì onDetailOpen
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load invoice details',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Thêm function để đánh dấu thanh toán invoice
+  const handleMarkAsPaid = async (invoiceId, e) => {
+    if (e) e.stopPropagation();
+    if (!invoiceId) {
+      toast({
+        title: 'Thông báo',
+        description: 'Không tìm thấy hóa đơn cho khoản đóng góp này',
+        status: 'warning',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      await api.post(`/invoices/${invoiceId}/mark-paid`);
+      
+      toast({
+        title: 'Success',
+        description: 'Invoice marked as paid successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      fetchData(); // Refresh data
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to mark invoice as paid',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Box pt={{ base: '130px', md: '80px', xl: '80px' }}>
       <Text
@@ -524,7 +614,7 @@ function Contributions() {
         Contributions Management
       </Text>
 
-      <Tabs variant='soft-rounded' colorScheme='brand' index={activeTabIndex} onChange={(index) => setActiveTabIndex(index)}>
+      <Tabs variant='soft-rounded' colorScheme='brand' index={activeTabIndex} onChange={handleTabChange}>
         <TabList mb='20px'>
           <Tab>Contributions</Tab>
           <Tab>User Contributions</Tab>
@@ -746,15 +836,20 @@ function Contributions() {
                         {contribution.targetAmount && (
                           <>
                             <Progress 
-                              value={(contribution.collectedAmount / contribution.targetAmount) * 100 || 0} 
+                              value={Math.min(((contribution.totalPaidAmount || contribution.currentAmount || contribution.collectedAmount || 0) / contribution.targetAmount) * 100, 100)}
                               colorScheme="green" 
                               size="sm" 
                               borderRadius="md" 
                               mb={2}
+                              w="100%"
+
                             />
                             <Flex justifyContent="space-between" fontSize="sm">
-                              <Text fontWeight="medium">{formatCurrency(contribution.collectedAmount || 0)}</Text>
-                              <Text color="gray.500">Target: {formatCurrency(contribution.targetAmount)}</Text>
+                              <Text fontWeight="medium">{formatCurrency(contribution.totalPaidAmount || contribution.currentAmount || contribution.collectedAmount || 0)}</Text>
+                              <Text color="gray.500">
+                                Target: {formatCurrency(contribution.targetAmount)}
+                                {contribution.targetAmount > 0 && ` (${Math.min(Math.round(((contribution.totalPaidAmount || contribution.currentAmount || contribution.collectedAmount || 0) / contribution.targetAmount) * 100), 100)}%)`}
+                              </Text>
                             </Flex>
                           </>
                         )}
@@ -944,7 +1039,7 @@ function Contributions() {
                         <Th>ID</Th>
                         <Th>Resident</Th>
                         <Th>Apartment</Th>
-                        <Th>Contribution</Th>
+                        <Th>Type</Th>
                         <Th>Amount</Th>
                         <Th>Payment Status</Th>
                         <Th>Created Date</Th>
@@ -957,7 +1052,7 @@ function Contributions() {
                           <Td>{contribution.id}</Td>
                           <Td>{contribution.residentName}</Td>
                           <Td>{contribution.apartmentNumber}</Td>
-                          <Td>{contribution.contributionName}</Td>
+                          <Td>{contribution.contributionTitle}</Td>
                           <Td>{formatCurrency(contribution.amount || 0)}</Td>
                           <Td>
                             <Badge 
@@ -973,20 +1068,23 @@ function Contributions() {
                           <Td>{formatDate(contribution.createdAt)}</Td>
                           <Td>
                             <Flex gap={2}>
-                              <Tooltip label="View details">
+                              <Tooltip label="View invoice details">
                                 <IconButton
                                   icon={<MdInfo />}
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => handleViewDetails(contribution)}
+                                  onClick={(e) => handleViewInvoice(contribution.invoiceId, e)}
+                                  isDisabled={!contribution.invoiceId}
                                 />
                               </Tooltip>
-                              {contribution.paymentStatus === 'UNPAID' && (
+                              {(contribution.paymentStatus === 'UNPAID' || contribution.paymentStatus === 'PROCESSING') && 
+                                contribution.invoiceId && (
                                 <Tooltip label="Mark as paid">
                                   <IconButton
                                     icon={<MdPayment />}
                                     colorScheme="green"
                                     size="sm"
+                                    onClick={(e) => handleMarkAsPaid(contribution.invoiceId, e)}
                                   />
                                 </Tooltip>
                               )}
@@ -1065,8 +1163,8 @@ function Contributions() {
                           <Td fontWeight="500">{type.name}</Td>
                           <Td>{type.description}</Td>
                           <Td>
-                            <Badge colorScheme={type.active ? 'green' : 'red'}>
-                              {type.active ? 'Active' : 'Inactive'}
+                            <Badge colorScheme="green">
+                              Active
                             </Badge>
                           </Td>
                           <Td>{formatDate(type.createdAt)}</Td>
@@ -1213,17 +1311,19 @@ function Contributions() {
                   <Box mb={4}>
                     <Flex justifyContent="space-between" mb={1}>
                       <Text fontWeight="medium">Progress</Text>
-                      <Text>{Math.round((selectedContribution.collectedAmount / selectedContribution.targetAmount) * 100 || 0)}%</Text>
+                      <Text>{Math.min(Math.round(((selectedContribution.totalPaidAmount || selectedContribution.currentAmount || selectedContribution.collectedAmount || 0) / selectedContribution.targetAmount) * 100), 100)}%</Text>
                     </Flex>
                     <Progress 
-                      value={(selectedContribution.collectedAmount / selectedContribution.targetAmount) * 100 || 0} 
+                      value={Math.min(((selectedContribution.totalPaidAmount || selectedContribution.currentAmount || selectedContribution.collectedAmount || 0) / selectedContribution.targetAmount) * 100, 100)} 
                       colorScheme="green" 
                       size="sm" 
                       borderRadius="md" 
                       mb={2}
+                      w="100%"
+                      bgColor="gray.200"
                     />
                     <Flex justifyContent="space-between" fontSize="sm">
-                      <Text>{formatCurrency(selectedContribution.collectedAmount || 0)}</Text>
+                      <Text>{formatCurrency(selectedContribution.totalPaidAmount || selectedContribution.currentAmount || selectedContribution.collectedAmount || 0)}</Text>
                       <Text color="gray.500">Target: {formatCurrency(selectedContribution.targetAmount)}</Text>
                     </Flex>
                   </Box>
@@ -1292,6 +1392,112 @@ function Contributions() {
               </>
             )}
             <Button onClick={onDetailClose}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Modal xem chi tiết invoice - sử dụng isInvoiceDetailOpen */}
+      <Modal isOpen={isInvoiceDetailOpen} onClose={onInvoiceDetailClose} size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Invoice Details</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {isLoading ? (
+              <Flex justify="center" py={10}>
+                <Spinner size="xl" color="brand.500" />
+              </Flex>
+            ) : invoiceDetail ? (
+              <Box>
+                <SimpleGrid columns={2} spacing={4} mb={4}>
+                  <FormControl>
+                    <FormLabel fontWeight="medium">Invoice Number</FormLabel>
+                    <Text>{invoiceDetail.invoiceNumber}</Text>
+                  </FormControl>
+                  
+                  <FormControl>
+                    <FormLabel fontWeight="medium">Status</FormLabel>
+                    <Badge 
+                      colorScheme={
+                        invoiceDetail.status === 'PAID' ? 'green' : 
+                        invoiceDetail.status === 'UNPAID' ? 'orange' : 'red'
+                      }
+                      p={2}
+                      fontSize="sm"
+                    >
+                      {invoiceDetail.status}
+                    </Badge>
+                  </FormControl>
+                  
+                  <FormControl>
+                    <FormLabel fontWeight="medium">Apartment</FormLabel>
+                    <Text>{invoiceDetail.apartmentNumber}</Text>
+                  </FormControl>
+                  
+                  <FormControl>
+                    <FormLabel fontWeight="medium">Resident Name</FormLabel>
+                    <Text>{invoiceDetail.residentName}</Text>
+                  </FormControl>
+                  
+                  <FormControl>
+                    <FormLabel fontWeight="medium">Total Amount</FormLabel>
+                    <Text fontWeight="bold">{formatCurrency(invoiceDetail.totalAmount || 0)}</Text>
+                  </FormControl>
+                  
+                  <FormControl>
+                    <FormLabel fontWeight="medium">Due Date</FormLabel>
+                    <Text>{formatDate(invoiceDetail.dueDate)}</Text>
+                  </FormControl>
+                </SimpleGrid>
+                
+                <FormControl mb={4}>
+                  <FormLabel fontWeight="medium">Description</FormLabel>
+                  <Text>{invoiceDetail.description || 'No description'}</Text>
+                </FormControl>
+                
+                {/* Bills information if available */}
+                {invoiceDetail.bills && invoiceDetail.bills.length > 0 && (
+                  <Box mt={4}>
+                    <Text fontWeight="bold" mb={3}>Related Bills</Text>
+                    <Table variant="simple" size="sm">
+                      <Thead>
+                        <Tr>
+                          <Th>Type</Th>
+                          <Th>Description</Th>
+                          <Th>Amount</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {invoiceDetail.bills.map((bill, index) => (
+                          <Tr key={index}>
+                            <Td>{bill.billType}</Td>
+                            <Td>{bill.description || '-'}</Td>
+                            <Td>{formatCurrency(bill.amount || 0)}</Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  </Box>
+                )}
+              </Box>
+            ) : (
+              <Text>No invoice details available</Text>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            {invoiceDetail && invoiceDetail.status === 'UNPAID' && (
+              <Button 
+                colorScheme="green" 
+                mr={3} 
+                onClick={() => handleMarkAsPaid(invoiceDetail.id)}
+                isLoading={isLoading}
+              >
+                Mark as Paid
+              </Button>
+            )}
+            <Button variant="outline" onClick={onInvoiceDetailClose}>
               Close
             </Button>
           </ModalFooter>
