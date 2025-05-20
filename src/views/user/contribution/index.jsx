@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {  Box,  Flex,  Text,  Spinner,  useColorModeValue,  useToast,  Card,  Button,  FormControl,  FormLabel,  Select,  Input,  InputGroup,  InputLeftElement,  SimpleGrid,  Stat,  StatLabel,  StatNumber,  StatHelpText,  StatArrow,  Progress,  Modal,  ModalOverlay,  ModalContent,  ModalHeader,  ModalBody,  ModalCloseButton,  ModalFooter,  useDisclosure,  Badge,  Divider,  NumberInput,  NumberInputField,  NumberInputStepper,  NumberIncrementStepper,  NumberDecrementStepper,  Tabs,  TabList,  TabPanels,  Tab,  TabPanel,  Table,  Thead,  Tbody,  Tr,  Th,  Td,  Image,  VStack,  Icon,  Link,  Tooltip,  HStack,  Heading,} from '@chakra-ui/react';
 import { MdFilterList, MdFileDownload, MdSearch, MdRefresh, MdPayment, MdAddCircle, MdHistory, MdOutlineInfo, MdArrowForward, MdOutlineFileDownload, MdAssignment } from 'react-icons/md';
 import { FaRegHandshake, FaHandHoldingUsd } from 'react-icons/fa';
-import api from '../../../services/apiConfig';
+import api from 'services/apiConfig';
 
 // Components
 import ContributionCard from './components/ContributionCard';

@@ -1,4 +1,4 @@
-import api from '../../../../services/apiConfig';
+import api from 'services/apiConfig';
 
 // Contribution Types API
 export const getContributionTypes = async () => {
