@@ -217,9 +217,9 @@ const UserInvoice = () => {
 
     setIsLoading(true);
     try {
-      // Cần đảm bảo billIds được chuyển đổi thành Long và đóng gói đúng cách
+      // Gửi mảng trực tiếp thay vì đóng gói trong đối tượng
       const billIds = selectedBills.map(id => Number(id));
-      const response = await api.post('/invoices/user/create', { billIds: billIds }, {
+      const response = await api.post('/invoices/user/create', billIds, {
         params: {
           apartmentNumber: selectedApartment.apartmentNumber
         }
@@ -268,9 +268,9 @@ const UserInvoice = () => {
 
     setIsLoading(true);
     try {
-      // Cần đảm bảo billIds được chuyển đổi thành Long và đóng gói đúng cách
+      // Gửi mảng trực tiếp thay vì đóng gói trong đối tượng
       const billIds = unpaidBills.map(bill => Number(bill.id));
-      const response = await api.post('/invoices/create-all-unpaid', { billIds: billIds }, {
+      const response = await api.post('/invoices/create-all-unpaid', billIds, {
         params: {
           apartmentNumber: selectedApartment.apartmentNumber
         }
