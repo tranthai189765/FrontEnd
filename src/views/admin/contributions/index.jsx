@@ -848,7 +848,7 @@ function Contributions() {
                               <Text fontWeight="medium">{formatCurrency(contribution.totalPaidAmount || contribution.currentAmount || contribution.collectedAmount || 0)}</Text>
                               <Text color="gray.500">
                                 Target: {formatCurrency(contribution.targetAmount)}
-                                {contribution.targetAmount > 0 && ` (${Math.min(Math.round(((contribution.totalPaidAmount || contribution.currentAmount || contribution.collectedAmount || 0) / contribution.targetAmount) * 100), 100)}%)`}
+                                {contribution.targetAmount > 0 && ` (${Math.min(Math.round(((contribution.totalPaidAmount || contribution.currentAmount || contribution.collectedAmount || 0) / contribution.targetAmount) * 10000) / 100, 100)}%)`}
                               </Text>
                             </Flex>
                           </>
@@ -1311,7 +1311,7 @@ function Contributions() {
                   <Box mb={4}>
                     <Flex justifyContent="space-between" mb={1}>
                       <Text fontWeight="medium">Progress</Text>
-                      <Text>{Math.min(Math.round(((selectedContribution.totalPaidAmount || selectedContribution.currentAmount || selectedContribution.collectedAmount || 0) / selectedContribution.targetAmount) * 100), 100)}%</Text>
+                      <Text>{Math.min(Math.round(((selectedContribution.totalPaidAmount || selectedContribution.currentAmount || selectedContribution.collectedAmount || 0) / selectedContribution.targetAmount) * 10000) / 100, 100)}%</Text>
                     </Flex>
                     <Progress 
                       value={Math.min(((selectedContribution.totalPaidAmount || selectedContribution.currentAmount || selectedContribution.collectedAmount || 0) / selectedContribution.targetAmount) * 100, 100)} 
