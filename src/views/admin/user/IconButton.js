@@ -32,7 +32,7 @@ const ActionsCell = ({ row, setData, toast, handleEdit, handleView, tableData })
       }
 
       await fetch(`${API_BASE_URL}/api/admin/users/delete/${row.id}`, {
-        method: 'DELETE',
+        method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
