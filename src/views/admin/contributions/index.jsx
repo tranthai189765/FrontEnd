@@ -60,8 +60,8 @@ import {
   updateContribution,
   getResidentContributions
 } from './services/contributionService';
-import api from 'services/apiConfig';
-import { viewInvoice, markInvoiceAsPaid } from 'services/invoiceService';
+import api from '../../../services/apiConfig';
+import { viewInvoice, markInvoiceAsPaid } from '../../../services/invoiceService';
 
 // Custom components
 import Card from 'components/card/Card';
