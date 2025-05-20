@@ -18,6 +18,7 @@ import {
   MdPeople,
   MdNotifications,
   MdExplore,
+  MdLocationCity,
 } from 'react-icons/md';
 
 // Admin Imports
@@ -49,8 +50,8 @@ import VerifyForgotSignUpCentered from 'views/auth/verifyForgot';
 import AdminComplaint from 'views/admin/complaint';
 import AdminApartment from 'views/admin/apartment';
 import UserTable from 'views/admin/user';
-import HomePage from 'views/user/homepage';
-
+import UserHomePage from 'views/user/homepage';
+import AdminHomePage from 'views/admin/homepage';
 // Admin routes
 export const adminRoutes = [
   {
@@ -59,13 +60,13 @@ export const adminRoutes = [
     path: '/data-tables',
     icon: (
       <Icon
-        as={MdBarChart}
+        as={MdLocationCity}
         width="20px"
         height="20px"
         color="inherit"
       />
     ),
-    component: <NFTMarketplace />,
+    component: <AdminHomePage />,
     secondary: true,
   },
   {
@@ -156,12 +157,19 @@ export const adminRoutes = [
 
 // User routes
 export const userRoutes = [
+    {
+    name: 'User Profile',
+    layout: '/user',
+    path: '/profile-user',
+    icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
+    component: <UserProfile />,
+  },
   {
-    name: 'User Main Dashboard',
+    name: 'User Homepage',
     layout: '/user',
     path: '/profile',
     icon: <Icon as={MdPerson} width="20px" height="20px" color="inherit" />,
-    component: <UserProfile />,
+    component: <UserHomePage />,
   },
   {
     name: 'Resident Complaint Service',
